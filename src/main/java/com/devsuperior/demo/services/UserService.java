@@ -6,6 +6,7 @@ import com.devsuperior.demo.dto.UserInsertDTO;
 import com.devsuperior.demo.dto.UserUpdateDTO;
 import com.devsuperior.demo.entities.Role;
 import com.devsuperior.demo.entities.User;
+import com.devsuperior.demo.projections.UserDetailsProjection;
 import com.devsuperior.demo.repositories.RoleRepository;
 import com.devsuperior.demo.repositories.UserRepository;
 import com.devsuperior.demo.services.exceptions.DataBaseException;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -101,6 +103,16 @@ public class UserService implements UserDetailsService {
     }
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return null;
+        List<UserDetailsProjection> result = userRepository.searchUserAndRolesByEmail(username);
+        if(result.size() == 0){
+            throw new UsernameNotFoundException("User not found");
+        }
+        User user = new User();
+        user.setEmail(username);
+        user.setPassword(result.get(0).getPassword());
+        for (UserDetailsProjection projection : result){
+            user.addRole(new Role(projection.getRoleId(), projection.getAuthority()));
+        }
+        return user;
     }
 }
